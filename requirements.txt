@@ -1,0 +1,11 @@
+numpy
+matplotlib
+torch 
+torchaudio
+scipy
+mir_eval
+noisereduce
+pedalboard
+sounddevice
+librosa
+soundfile
