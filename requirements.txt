@@ -9,3 +9,5 @@ pedalboard
 sounddevice
 librosa
 soundfile
+streamlit
+flask
