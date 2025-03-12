@@ -30,7 +30,6 @@ class StemSeparator:
         fade = Fade(fade_in_len=0, fade_out_len=overlap_frames, fade_shape="linear")
         final = torch.zeros(batch, len(self.model.sources), channels, length, device=self.device)
         
-        # total_chunks = (length // chunk_len) + 1
         total_chunks = -(-length // chunk_len)  # Equivalent to math.ceil(length / chunk_len)
         chunk_count = 0
 
@@ -51,7 +50,7 @@ class StemSeparator:
         return final
     
     def process_audio(self, input_file):
-        print("Loading audio file...")
+        print(f"Loading audio file: {input_file}")
         waveform, sr = torchaudio.load(input_file)
         waveform = waveform.to(self.device)
         ref = waveform.mean(0)
@@ -63,20 +62,29 @@ class StemSeparator:
         
         return dict(zip(self.model.sources, sources[0]))
     
-    def save_stems(self, audio_dict, output_dir="../data/output/"):
+    def save_stems(self, audio_dict, output_dir):
         os.makedirs(output_dir, exist_ok=True)
+        saved_files = {}  # Dictionary to store file paths
+        
         for source_name, source_wave in audio_dict.items():
-            print(f"Saving {source_name}...")
             output_path = os.path.join(output_dir, f"{source_name}.wav")
             torchaudio.save(output_path, source_wave.cpu(), self.sample_rate)
-        print("All stems saved successfully!")
+            saved_files[source_name] = output_path  # Store the file path
         
-        # Free up memory after saving
+        print("All stems saved successfully!")
         del audio_dict
         gc.collect()
         torch.cuda.empty_cache()
+        return saved_files  # Return dictionary of saved file paths
 
-# Example usage
-separator = StemSeparator()
-stems = separator.process_audio("../data/input/zedd_test.wav")
-separator.save_stems(stems)
+# Function for Streamlit
+def separate_stems(input_audio, output_dir):
+    separator = StemSeparator()
+    stems = separator.process_audio(input_audio)
+    return separator.save_stems(stems, output_dir)
+
+if __name__ == "__main__":
+    import sys
+    input_audio = sys.argv[1]
+    output_dir = sys.argv[2]
+    separate_stems(input_audio, output_dir)
