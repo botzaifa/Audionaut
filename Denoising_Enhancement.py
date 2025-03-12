@@ -1,5 +1,5 @@
 from df.enhance import enhance, init_df, load_audio, save_audio
-from df.utils import download_file
+# from df.utils import download_file
 
 class AudioDenoiser:
     def __init__(self):
@@ -8,7 +8,7 @@ class AudioDenoiser:
         """
         self.model, self.df_state, _ = init_df()
     
-    def denoise_audio(self, audio_path: str, output_path: str = "enhanced.wav"):
+    def denoise_audio(self, audio_path: str, output_path: str = "content/output/enhanced.wav"):
         """
         Denoises the given audio file and saves the output.
         
@@ -23,5 +23,5 @@ class AudioDenoiser:
 # Example usage
 if __name__ == "__main__":
     denoiser = AudioDenoiser()
-    input_audio_path = "Noise Test.wav"  # Replace with your file path
+    input_audio_path = "content/input/check.wav"  # Replace with your file path
     denoiser.denoise_audio(input_audio_path)
