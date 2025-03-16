@@ -1,74 +1,83 @@
 import streamlit as st
 import os
 import sys
+import subprocess
+import tempfile
 from pathlib import Path
 
-# Fix Import Issue: Add 'backend/' to Python Path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+# Fix import issues by adding the project root to sys.path
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Import backend modules AFTER fixing path
-from backend.stem import separate_stems
-from backend.enhancement import enhance_audio
+from backend.converter import convert_to_mp3  # MP3 Converter
+from backend.enhancement import AudioDenoiser  # Audio Enhancement
+from backend.stem import StemSeparator  # Stem Separation
+from backend.recorder import AudioRecorder  # Recorder
 
-# Define directories
-DATA_INPUT_DIR = "../data/input/"
-DATA_OUTPUT_DIR = "../data/output/"
-os.makedirs(DATA_INPUT_DIR, exist_ok=True)
-os.makedirs(DATA_OUTPUT_DIR, exist_ok=True)
-
-# Streamlit App UI
+# Set up Streamlit app
 st.title("🎵 Audionaut: Audio Processing App")
 st.sidebar.header("Select an Operation")
 
-# Select Operation
+# Choose between Stem Separation and Audio Enhancement
 option = st.sidebar.radio("Choose a function:", ["Stem Separation", "Audio Enhancement"])
 
-# File selection: Upload OR Select from existing
-st.subheader("📂 Select an Audio File")
+# Upload audio/video file
+uploaded_file = st.file_uploader("Upload an audio/video file", type=["wav", "mp3", "mp4", "m4a", "flac", "aac"])
 
-uploaded_file = st.file_uploader("Upload an audio file", type=["wav", "mp3"])
-existing_files = [f for f in os.listdir(DATA_INPUT_DIR) if f.endswith((".wav", ".mp3"))]
+# Create temporary directory
+temp_dir = tempfile.TemporaryDirectory()
+data_output_dir = os.path.join(os.getcwd(), "data", "output")
+os.makedirs(data_output_dir, exist_ok=True)
 
-selected_file = None
-if existing_files:
-    selected_file = st.selectbox("Or select an existing file:", ["None"] + existing_files)
-
-# Get the final file path
 if uploaded_file:
-    temp_file_path = os.path.join(DATA_INPUT_DIR, uploaded_file.name)
-    with open(temp_file_path, "wb") as f:
+    # Save uploaded file
+    input_audio_path = os.path.join(temp_dir.name, uploaded_file.name)
+    with open(input_audio_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    selected_file = uploaded_file.name
-elif selected_file == "None":
-    selected_file = None
 
-if selected_file:
-    file_path = os.path.join(DATA_INPUT_DIR, selected_file)
-    st.audio(file_path, format="audio/wav")
+    # Convert to MP3 if needed
+    converted_audio_path = convert_to_mp3(input_audio_path)
+
+    st.success(f"File processed: {Path(converted_audio_path).name}")
+    st.audio(converted_audio_path, format="audio/mp3")
 
     if option == "Stem Separation":
         st.subheader("🎤 Stem Separation")
         if st.button("Process Audio"):
             with st.spinner("Processing..."):
-                stems = separate_stems(file_path, DATA_OUTPUT_DIR)
-            
-            st.success("✅ Stem separation complete! Download the separated files below:")
-            for stem_name, stem_path in stems.items():
-                st.audio(stem_path, format="audio/wav")
+                separator = StemSeparator()
+                stems = separator.process_audio(converted_audio_path)
+                separator.save_stems(stems, data_output_dir)
+
+            st.success("Stem separation complete! Download the separated files below:")
+            for stem in stems.keys():
+                stem_path = os.path.join(data_output_dir, f"{stem}.wav")
                 with open(stem_path, "rb") as f:
-                    st.download_button(f"Download {stem_name}.wav", f, file_name=f"{stem_name}.wav")
+                    st.download_button(f"Download {stem}.wav", f, file_name=f"{stem}.wav", mime="audio/wav")
 
     elif option == "Audio Enhancement":
         st.subheader("🔊 Audio Enhancement")
+
+        # Recorder Section (Only for Audio Enhancement)
+        st.write("🎤 **Record Audio (Max 20 sec, Stop Anytime)**")
+        if st.button("Start Recording"):
+            recorder = AudioRecorder()
+            recorded_audio_path = recorder.record_audio()
+            st.success("Recording complete!")
+            st.audio(recorded_audio_path, format="audio/wav")
+
+            # Use recorded file instead of uploaded file
+            converted_audio_path = recorded_audio_path
+
         if st.button("Enhance Audio"):
             with st.spinner("Enhancing..."):
-                output_file = os.path.join(DATA_OUTPUT_DIR, "enhanced_audio.wav")
-                enhanced_path = enhance_audio(file_path, output_file)
+                output_file = os.path.join(data_output_dir, "enhanced_audio.wav")
+                denoiser = AudioDenoiser()
+                denoiser.denoise_audio(converted_audio_path, output_file)
 
-            st.success("✅ Audio enhancement complete! Download the enhanced file below:")
-            st.audio(enhanced_path, format="audio/wav")
-            with open(enhanced_path, "rb") as f:
-                st.download_button("Download Enhanced Audio", f, file_name="enhanced_audio.wav")
+            st.success("Audio enhancement complete! Download below:")
+            with open(output_file, "rb") as f:
+                st.download_button("Download Enhanced Audio", f, file_name="enhanced_audio.wav", mime="audio/wav")
 
-else:
-    st.warning("⚠️ Please upload or select a file to proceed.")
+# Cleanup temporary directory
+temp_dir.cleanup()
