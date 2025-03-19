@@ -1,38 +1,37 @@
-import os
-from pytube import YouTube
-from moviepy.editor import *  # Import moviepy library
+# import os
+# import tempfile
+# from pytube import YouTube
+# from pydub import AudioSegment
 
-def download_and_convert_to_mp3(url, output_path='downloads'):
-    # Create a directory to save the video and MP3 files
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+# class YouTubeDownloader:
+#     def __init__(self, output_dir="../data/input/"):
+#         self.output_dir = output_dir
+#         os.makedirs(self.output_dir, exist_ok=True)
 
-    # Download the YouTube video
-    try:
-        print("Downloading video...")
-        yt = YouTube(url)
-        video_stream = yt.streams.filter(progressive=True, file_extension='mp4').first()  # Choose the best video stream
-        video_path = video_stream.download(output_path=output_path)
-        print(f"Video downloaded successfully: {video_path}")
-    except Exception as e:
-        print(f"Error downloading video: {e}")
-        return
+#     def download_and_convert(self, url):
+#         """Downloads a YouTube video and converts it to an MP3 file."""
+#         try:
+#             # Step 1: Download YouTube video
+#             yt = YouTube(url)
+#             stream = yt.streams.filter(only_audio=True).first()  # Get best audio stream
 
-    # Convert video to MP3
-    try:
-        print("Converting video to MP3...")
-        video_clip = AudioFileClip(video_path)  # Extract audio from the video
-        mp3_path = os.path.join(output_path, yt.title + '.mp3')  # Save the MP3 file with the video title as name
-        video_clip.write_audiofile(mp3_path)
-        video_clip.close()
-        print(f"Conversion to MP3 successful: {mp3_path}")
+#             if not stream:
+#                 raise Exception("No audio streams found!")
 
-        # Optionally, remove the original video after conversion
-        os.remove(video_path)
-        print(f"Original video removed: {video_path}")
-    except Exception as e:
-        print(f"Error during conversion: {e}")
+#             # Step 2: Save to a temporary file
+#             temp_dir = tempfile.mkdtemp()
+#             temp_file_path = os.path.join(temp_dir, "temp_audio.mp4")
+#             stream.download(output_path=temp_dir, filename="temp_audio.mp4")
 
-# Example usage
-url = input("Enter the YouTube video URL: ")
-download_and_convert_to_mp3(url)
+#             # Step 3: Convert to MP3
+#             audio = AudioSegment.from_file(temp_file_path, format="mp4")
+#             mp3_file_path = os.path.join(self.output_dir, f"{yt.title}.mp3")
+#             audio.export(mp3_file_path, format="mp3")
+
+#             # Clean up temporary files
+#             os.remove(temp_file_path)
+
+#             return mp3_file_path  # Return path of the converted file
+
+#         except Exception as e:
+#             return f"Error: {str(e)}"
