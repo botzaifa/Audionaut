@@ -9,6 +9,8 @@ venv/
 ENV/
 env/
 .venv/
+.data/
+
 
 # IDE and Editor files
 .vscode/
@@ -46,3 +48,6 @@ coverage.xml
 *.ini
 *.json
 *.yml
+
+# Ignore data
+data/

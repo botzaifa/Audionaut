@@ -62,15 +62,25 @@ class StemSeparator:
         
         return dict(zip(self.model.sources, sources[0]))
     
-    def save_stems(self, audio_dict, output_dir):
+    def save_stems(self, audio_dict, output_dir, karaoke_mode=False):
         os.makedirs(output_dir, exist_ok=True)
         saved_files = {}  # Dictionary to store file paths
         
-        for source_name, source_wave in audio_dict.items():
-            output_path = os.path.join(output_dir, f"{source_name}.wav")
-            torchaudio.save(output_path, source_wave.cpu(), self.sample_rate)
-            saved_files[source_name] = output_path  # Store the file path
-        
+        if karaoke_mode:
+            print("Karaoke mode enabled: Removing vocals...")
+            instrumental_wave = (
+                audio_dict["drums"] + audio_dict["bass"] + audio_dict["other"]
+            )  # Sum of all except vocals
+            
+            instrumental_path = os.path.join(output_dir, "instrumental.wav")
+            torchaudio.save(instrumental_path, instrumental_wave.cpu(), self.sample_rate)
+            saved_files["instrumental"] = instrumental_path
+        else:
+            for source_name, source_wave in audio_dict.items():
+                output_path = os.path.join(output_dir, f"{source_name}.wav")
+                torchaudio.save(output_path, source_wave.cpu(), self.sample_rate)
+                saved_files[source_name] = output_path  # Store the file path
+
         print("All stems saved successfully!")
         del audio_dict
         gc.collect()
@@ -78,13 +88,15 @@ class StemSeparator:
         return saved_files  # Return dictionary of saved file paths
 
 # Function for Streamlit
-def separate_stems(input_audio, output_dir):
+def separate_stems(input_audio, output_dir, karaoke_mode=False):
     separator = StemSeparator()
     stems = separator.process_audio(input_audio)
-    return separator.save_stems(stems, output_dir)
+    return separator.save_stems(stems, output_dir, karaoke_mode)
 
 if __name__ == "__main__":
-    import sys
     input_audio = sys.argv[1]
     output_dir = sys.argv[2]
-    separate_stems(input_audio, output_dir)
+    karaoke_mode = bool(int(sys.argv[3])) if len(sys.argv) > 3 else False  # Convert argument to boolean
+    separate_stems(input_audio, output_dir, karaoke_mode)
+
+

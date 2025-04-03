@@ -12,8 +12,6 @@ soundfile
 streamlit
 flask
 DeepFilterNet
-# pyaudio
-# pytube
-# pydub
+demucs
+pyaudio
 # ffmpeg
-# moviepy
