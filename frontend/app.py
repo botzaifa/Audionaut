@@ -67,16 +67,6 @@ if option == "Audio Enhancement":
         if st.button("▶️ Resume Recording"):
             resume_recording()
             st.info("Recording resumed...")
-
-    # with col4:
-    #     if st.button("⏹️ Stop Recording"):
-    #         recorded_audio = stop_recording()
-    #         if recorded_audio:
-    #             # Ensure it's saved in DATA_INPUT_DIR and update session state
-    #             recorded_audio_path = os.path.join(DATA_INPUT_DIR, os.path.basename(recorded_audio))
-    #             st.session_state["selected_file"] = os.path.basename(recorded_audio)
-    #             st.success(f"Recording stopped and saved as {st.session_state['selected_file']}.")
-    #             st.audio(recorded_audio_path, format="audio/wav")  # ✅ Ensures single playback
             
     with col4:
         if st.button("⏹️ Stop Recording"):
@@ -96,15 +86,26 @@ if st.session_state["selected_file"]:
 
     if option == "Stem Separation":
         st.subheader("🎤 Stem Separation")
+                        
+        # Karaoke Mode Toggle
+        karaoke_mode = st.checkbox("🎤 Enable Karaoke Mode (Remove Vocals)")
+
         if st.button("Process Audio"):
             with st.spinner("Processing..."):
-                stems = separate_stems(file_path, DATA_OUTPUT_DIR)
+                stems = separate_stems(file_path, DATA_OUTPUT_DIR, karaoke_mode)
             
-            st.success("✅ Stem separation complete! Download the separated files below:")
-            for stem_name, stem_path in stems.items():
-                st.audio(stem_path, format="audio/wav")
-                with open(stem_path, "rb") as f:
-                    st.download_button(f"Download {stem_name}.wav", f, file_name=f"{stem_name}.wav")
+            st.success("✅ Stem separation complete! Download the processed files below:")
+
+            # If Karaoke Mode, show only the instrumental file
+            if karaoke_mode:
+                st.audio(stems["instrumental"], format="audio/wav")
+                with open(stems["instrumental"], "rb") as f:
+                    st.download_button("Download Instrumental", f, file_name="instrumental.wav")
+            else:
+                for stem_name, stem_path in stems.items():
+                    st.audio(stem_path, format="audio/wav")
+                    with open(stem_path, "rb") as f:
+                        st.download_button(f"Download {stem_name}.wav", f, file_name=f"{stem_name}.wav")
 
     elif option == "Audio Enhancement":
         st.subheader("🔊 Audio Enhancement")
